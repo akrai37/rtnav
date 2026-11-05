@@ -5,3 +5,4 @@ function(rtnav_test name)
 endfunction()
 
 rtnav_test(nav_test rtnav_nav)
+rtnav_test(sim_test rtnav_sim)

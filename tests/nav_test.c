@@ -33,22 +33,60 @@ static void test_normalise(void) {
 
 static void test_line_position(void) {
   check_context = "position";
-  bool found;
   nav_inputs in = line_under(2);
-  CHECK(nav_line_position(&cfg, &in, &found) == 0 && found);
+  nav_fix f = nav_locate(&cfg, &in, 0, 0);
+  CHECK(f.found && f.position == 0 && f.run == 1u << 2);
   in = line_under(0);
-  CHECK(nav_line_position(&cfg, &in, &found) == -2000 && found);
+  f = nav_locate(&cfg, &in, 0, 0);
+  CHECK(f.found && f.position == -2000);
   in = line_under(4);
-  CHECK(nav_line_position(&cfg, &in, &found) == 2000 && found);
+  f = nav_locate(&cfg, &in, 0, 0);
+  CHECK(f.found && f.position == 2000);
   // Halfway between sensors 2 and 3: both half-covered.
   in = line_under(-1);
   in.line[2] = (uint16_t)((cfg.white[2] + cfg.black[2]) / 2);
   in.line[3] = (uint16_t)((cfg.white[3] + cfg.black[3]) / 2);
-  const int32_t pos = nav_line_position(&cfg, &in, &found);
-  CHECK(found && pos >= 495 && pos <= 505);
+  f = nav_locate(&cfg, &in, 0, 0);
+  CHECK(f.found && f.position >= 495 && f.position <= 505 && f.run == ((1u << 2) | (1u << 3)));
   in = line_under(-1);
-  nav_line_position(&cfg, &in, &found);
-  CHECK(!found);
+  f = nav_locate(&cfg, &in, 0, 0);
+  CHECK(!f.found && f.dark == 0);
+}
+
+static void test_separate_runs(void) {
+  check_context = "runs";
+  // Line under sensor 1 and something dark under sensor 4: two runs. The
+  // one nearer the previous position wins; masking removes the other.
+  nav_inputs in = line_under(1);
+  in.line[4] = cfg.black[4];
+  nav_fix f = nav_locate(&cfg, &in, 0, -1000);
+  CHECK(f.found && f.position == -1000 && f.dark == ((1u << 1) | (1u << 4)));
+  f = nav_locate(&cfg, &in, 0, 1500);
+  CHECK(f.position == 2000);
+  f = nav_locate(&cfg, &in, 1u << 1, -1000);
+  CHECK(f.position == 2000 && f.run == 1u << 4);
+}
+
+static void test_fault_masking(void) {
+  check_context = "fault";
+  nav n;
+  nav_init(&n, &cfg);
+  nav_inputs in = line_under(2);
+  in.line[4] = NAV_ADC_MAX;  // stuck dark
+  for (unsigned t = 1; t < cfg.fault_ticks; ++t) {
+    nav_step(&n, &in);
+  }
+  CHECK(n.masked == 0);
+  nav_step(&n, &in);
+  CHECK(n.masked == 1u << 4);
+  // A dark sensor that is part of the followed run is never suspect.
+  nav_init(&n, &cfg);
+  in = line_under(2);
+  in.line[3] = cfg.black[3];
+  for (unsigned t = 0; t < 2u * cfg.fault_ticks; ++t) {
+    nav_step(&n, &in);
+  }
+  CHECK(n.masked == 0);
 }
 
 static void test_steering(void) {
@@ -113,6 +151,23 @@ static void test_search_and_recover(void) {
   CHECK(n.state == NAV_FOLLOW);
 }
 
+static void test_gap_bridging(void) {
+  check_context = "gap";
+  nav n;
+  nav_init(&n, &cfg);
+  nav_inputs in = line_under(2);  // centred when the line vanishes: a gap
+  nav_step(&n, &in);
+  in = line_under(-1);
+  nav_motors m = nav_step(&n, &in);
+  CHECK(n.state == NAV_SEARCH && m.left > 0 && m.left == m.right);
+  for (unsigned t = 1; t < cfg.gap_ticks; ++t) {
+    m = nav_step(&n, &in);
+  }
+  CHECK(m.left > 0 && m.left == m.right);  // still straight at the end of the window
+  m = nav_step(&n, &in);
+  CHECK(m.left == -m.right && m.left != 0);  // then spins
+}
+
 static void test_search_gives_up(void) {
   check_context = "search timeout";
   nav n;
@@ -150,10 +205,38 @@ static void test_avoidance_sequence(void) {
   in = line_under(2);
   nav_step(&n, &in);
   CHECK(n.state == NAV_AVOID);
-  for (unsigned t = 0; t < cfg.avoid_arc_ticks; ++t) {
+  for (unsigned t = 0; t < cfg.avoid_arc_ticks && n.state == NAV_AVOID; ++t) {
     nav_step(&n, &in);
   }
-  CHECK(n.state == NAV_FOLLOW);  // arc done and line found: back to following
+  CHECK(n.state == NAV_REJOIN);  // arc done and line found
+  // Drives on over the line, then spins right until it is centred.
+  in = line_under(-1);
+  for (unsigned t = 1; t < cfg.rejoin_cross_ticks; ++t) {
+    m = nav_step(&n, &in);
+    CHECK(m.left > 0 && m.left == m.right);
+  }
+  m = nav_step(&n, &in);
+  CHECK(n.state == NAV_REJOIN && m.left > 0 && m.right == -m.left);
+  in = line_under(4);  // seen, but not yet centred
+  nav_step(&n, &in);
+  CHECK(n.state == NAV_REJOIN);
+  in = line_under(2);
+  nav_step(&n, &in);
+  CHECK(n.state == NAV_FOLLOW);
+}
+
+// Into AVOID, then through the arc onto the line: ends in REJOIN.
+static void reach_rejoin(nav* n) {
+  nav_init(n, &cfg);
+  nav_inputs in = line_under(2);
+  in.distance = cfg.obstacle_adc;
+  nav_step(n, &in);
+  in = line_under(-1);
+  for (unsigned t = 0; t < (unsigned)cfg.avoid_turn_ticks + cfg.avoid_arc_ticks; ++t) {
+    nav_step(n, &in);
+  }
+  in = line_under(2);
+  nav_step(n, &in);
 }
 
 static void test_avoidance_gives_up(void) {
@@ -166,6 +249,14 @@ static void test_avoidance_gives_up(void) {
   in = line_under(-1);  // never finds the line again
   for (unsigned t = 0; t <= cfg.avoid_max_ticks; ++t) {
     nav_step(&n, &in);
+  }
+  CHECK(n.state == NAV_STOP);
+
+  check_context = "rejoin timeout";
+  reach_rejoin(&n);
+  CHECK(n.state == NAV_REJOIN);
+  for (unsigned t = 0; t <= cfg.rejoin_max_ticks; ++t) {
+    nav_step(&n, &in);  // line never centred
   }
   CHECK(n.state == NAV_STOP);
 }
@@ -190,9 +281,12 @@ int main(void) {
   cfg = nav_default_config();
   test_normalise();
   test_line_position();
+  test_separate_runs();
+  test_fault_masking();
   test_steering();
   test_derivative_damps();
   test_search_and_recover();
+  test_gap_bridging();
   test_search_gives_up();
   test_avoidance_sequence();
   test_avoidance_gives_up();

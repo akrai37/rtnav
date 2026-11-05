@@ -38,6 +38,18 @@ add_library(rtnav_nav src/nav.c)
 target_include_directories(rtnav_nav PUBLIC include)
 target_link_libraries(rtnav_nav PRIVATE rtnav_warnings)
 
+# Closed-loop simulation of the robot, host only.
+add_library(rtnav_sim sim/sim.c sim/track.c)
+target_include_directories(rtnav_sim PUBLIC sim)
+target_link_libraries(rtnav_sim PUBLIC rtnav_nav PRIVATE rtnav_warnings)
+find_library(MATH_LIBRARY m)
+if(MATH_LIBRARY)
+  target_link_libraries(rtnav_sim PUBLIC ${MATH_LIBRARY})
+endif()
+
+add_executable(rtnav-sim tools/rtnav_sim.c)
+target_link_libraries(rtnav-sim PRIVATE rtnav_sim rtnav_warnings)
+
 if(RTNAV_BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests)
