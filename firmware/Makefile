@@ -12,8 +12,10 @@ OBJCOPY := avr-objcopy
 SIZE  := avr-size
 
 BUILD := build
-SRC   := main.c
+# nav.c is the portable navigation logic shared with the host build.
+SRC   := main.c nav.c
 OBJ   := $(SRC:%.c=$(BUILD)/%.o)
+vpath %.c ../src
 
 CFLAGS := -mmcu=$(MCU) -DF_CPU=$(F_CPU) -Os -std=gnu11 -g \
           -Wall -Wextra -Werror -Wshadow -Wstrict-prototypes -Wmissing-prototypes \
