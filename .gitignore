@@ -1,0 +1,7 @@
+/build*/
+/firmware/build/
+.cache/
+compile_commands.json
+.DS_Store
+*.swp
+__pycache__/

@@ -1,0 +1,41 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  firmware:
+    name: firmware / avr-gcc
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the AVR toolchain
+        run: sudo apt-get update && sudo apt-get install -y gcc-avr avr-libc binutils-avr
+
+      - name: Build the firmware
+        run: make -C firmware
+
+  host:
+    name: host / ${{ matrix.os }} / ${{ matrix.cc }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-24.04, cc: gcc}
+          - {os: ubuntu-24.04, cc: clang}
+          - {os: macos-14, cc: clang}
+    env:
+      CC: ${{ matrix.cc }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and test
+        run: |
+          if [ -f CMakeLists.txt ]; then
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DRTNAV_WERROR=ON -DRTNAV_SANITIZE=ON
+            cmake --build build -j
+            ctest --test-dir build --output-on-failure -j 4
+          fi
