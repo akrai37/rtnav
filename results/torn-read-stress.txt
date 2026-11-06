@@ -1,0 +1,2 @@
+firmware=build mode=adc-stress ticks=30000 torn_values=0 torn_ticks=0 hung=no
+firmware=build-torn-read mode=adc-stress ticks=30000 torn_values=0 torn_ticks=0 hung=no

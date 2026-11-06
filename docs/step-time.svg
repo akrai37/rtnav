@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 400" width="760" height="400" role="img" aria-label="Distribution of control-step durations against the 10 ms budget">
+<style>
+  svg { --surface: #fcfcfb; --ink: #0b0b0b; --ink2: #52514e; --muted: #898781;
+        --grid: #e1e0d9; --axis: #c3c2b7; --tape: #c3c2b7; --obstacle: #e1e0d9;
+        --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; }
+  @media (prefers-color-scheme: dark) {
+    svg { --surface: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --muted: #898781;
+          --grid: #2c2c2a; --axis: #383835; --tape: #4a4a46; --obstacle: #383835;
+          --s1: #3987e5; --s2: #d95926; --s3: #199e70; }
+  }
+  text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+         fill: var(--ink2); font-size: 12px; }
+  .title { fill: var(--ink); font-size: 15px; font-weight: 600; }
+  .strong { fill: var(--ink); font-weight: 600; }
+  .muted { fill: var(--muted); font-size: 11px; }
+</style>
+<rect width="760" height="400" rx="8" fill="var(--surface)"/>
+<text x="20" y="32" class="title">Control-step time on the chip: worst 425 µs of a 10,000 µs budget (4.25%)</text>
+<text x="20" y="54">12,027 steps of the real firmware on simavr (ATmega328P, 16 MHz), all four tracks, timed by the debug pin.</text>
+<rect x="20" y="74" width="720" height="14" rx="4" fill="var(--grid)"/>
+<rect x="20" y="74" width="30.6" height="14" rx="4" fill="var(--s1)"/>
+<text x="20" y="106">worst step, to scale</text>
+<text x="740" y="106" text-anchor="end">10 ms control tick (100 Hz); the CPU sleeps for the rest</text>
+<line x1="60" x2="740" y1="330.0" y2="330.0" stroke="var(--axis)" stroke-width="1"/>
+<text x="52" y="334.0" text-anchor="end" class="muted">0</text>
+<line x1="60" x2="740" y1="240.0" y2="240.0" stroke="var(--grid)" stroke-width="1"/>
+<text x="52" y="244.0" text-anchor="end" class="muted">1,000</text>
+<line x1="60" x2="740" y1="150.0" y2="150.0" stroke="var(--grid)" stroke-width="1"/>
+<text x="52" y="154.0" text-anchor="end" class="muted">2,000</text>
+<text x="52" y="138" text-anchor="end" class="muted">steps</text>
+<text x="105.3" y="348" text-anchor="middle" class="muted">100</text>
+<text x="196.0" y="348" text-anchor="middle" class="muted">150</text>
+<text x="286.7" y="348" text-anchor="middle" class="muted">200</text>
+<text x="377.3" y="348" text-anchor="middle" class="muted">250</text>
+<text x="468.0" y="348" text-anchor="middle" class="muted">300</text>
+<text x="558.7" y="348" text-anchor="middle" class="muted">350</text>
+<text x="649.3" y="348" text-anchor="middle" class="muted">400</text>
+<text x="740.0" y="348" text-anchor="middle" class="muted">450</text>
+<text x="400" y="368" text-anchor="middle" class="muted">control-step duration (µs)</text>
+<rect x="97.3" y="328.2" width="16.4" height="1.8" rx="2" fill="var(--s1)"><title>95-105 µs: 20 steps</title></rect>
+<rect x="169.8" y="283.9" width="16.4" height="46.1" rx="2" fill="var(--s1)"><title>135-145 µs: 512 steps</title></rect>
+<rect x="187.9" y="327.2" width="16.4" height="2.8" rx="2" fill="var(--s1)"><title>145-155 µs: 31 steps</title></rect>
+<rect x="206.1" y="329.9" width="16.4" height="0.1" rx="2" fill="var(--s1)"><title>155-165 µs: 1 steps</title></rect>
+<rect x="242.3" y="290.8" width="16.4" height="39.2" rx="2" fill="var(--s1)"><title>175-185 µs: 436 steps</title></rect>
+<rect x="278.6" y="328.9" width="16.4" height="1.1" rx="2" fill="var(--s1)"><title>195-205 µs: 12 steps</title></rect>
+<rect x="296.7" y="327.6" width="16.4" height="2.4" rx="2" fill="var(--s1)"><title>205-215 µs: 27 steps</title></rect>
+<rect x="314.9" y="327.3" width="16.4" height="2.7" rx="2" fill="var(--s1)"><title>215-225 µs: 30 steps</title></rect>
+<rect x="333.0" y="329.9" width="16.4" height="0.1" rx="2" fill="var(--s1)"><title>225-235 µs: 1 steps</title></rect>
+<rect x="351.1" y="327.6" width="16.4" height="2.4" rx="2" fill="var(--s1)"><title>235-245 µs: 27 steps</title></rect>
+<rect x="369.3" y="225.4" width="16.4" height="104.6" rx="2" fill="var(--s1)"><title>245-255 µs: 1,162 steps</title></rect>
+<rect x="387.4" y="227.1" width="16.4" height="102.9" rx="2" fill="var(--s1)"><title>255-265 µs: 1,143 steps</title></rect>
+<rect x="405.5" y="245.3" width="16.4" height="84.7" rx="2" fill="var(--s1)"><title>265-275 µs: 941 steps</title></rect>
+<rect x="423.7" y="329.0" width="16.4" height="1.0" rx="2" fill="var(--s1)"><title>275-285 µs: 11 steps</title></rect>
+<rect x="441.8" y="179.7" width="16.4" height="150.3" rx="2" fill="var(--s1)"><title>285-295 µs: 1,670 steps</title></rect>
+<rect x="459.9" y="152.2" width="16.4" height="177.8" rx="2" fill="var(--s1)"><title>295-305 µs: 1,975 steps</title></rect>
+<rect x="478.1" y="205.3" width="16.4" height="124.7" rx="2" fill="var(--s1)"><title>305-315 µs: 1,386 steps</title></rect>
+<rect x="496.2" y="329.9" width="16.4" height="0.1" rx="2" fill="var(--s1)"><title>315-325 µs: 1 steps</title></rect>
+<rect x="514.3" y="273.9" width="16.4" height="56.1" rx="2" fill="var(--s1)"><title>325-335 µs: 623 steps</title></rect>
+<rect x="532.5" y="192.2" width="16.4" height="137.8" rx="2" fill="var(--s1)"><title>335-345 µs: 1,531 steps</title></rect>
+<rect x="550.6" y="308.1" width="16.4" height="21.9" rx="2" fill="var(--s1)"><title>345-355 µs: 243 steps</title></rect>
+<rect x="586.9" y="327.6" width="16.4" height="2.4" rx="2" fill="var(--s1)"><title>365-375 µs: 27 steps</title></rect>
+<rect x="605.0" y="316.5" width="16.4" height="13.5" rx="2" fill="var(--s1)"><title>375-385 µs: 150 steps</title></rect>
+<rect x="623.1" y="325.1" width="16.4" height="4.9" rx="2" fill="var(--s1)"><title>385-395 µs: 54 steps</title></rect>
+<rect x="659.4" y="329.6" width="16.4" height="0.4" rx="2" fill="var(--s1)"><title>405-415 µs: 4 steps</title></rect>
+<rect x="677.5" y="329.6" width="16.4" height="0.4" rx="2" fill="var(--s1)"><title>415-425 µs: 5 steps</title></rect>
+<rect x="695.7" y="329.6" width="16.4" height="0.4" rx="2" fill="var(--s1)"><title>425-435 µs: 4 steps</title></rect>
+<line x1="458.3" x2="458.3" y1="146" y2="330" stroke="var(--ink2)" stroke-width="1" stroke-dasharray="3 3"/>
+<text x="454.3" y="158" text-anchor="end"><tspan class="strong">median</tspan> 295 µs</text>
+<line x1="618.2" x2="618.2" y1="146" y2="330" stroke="var(--ink2)" stroke-width="1" stroke-dasharray="3 3"/>
+<text x="614.2" y="174" text-anchor="end"><tspan class="strong">p99</tspan> 383 µs</text>
+<line x1="695.5" x2="695.5" y1="146" y2="330" stroke="var(--ink2)" stroke-width="1" stroke-dasharray="3 3"/>
+<text x="691.5" y="190" text-anchor="end"><tspan class="strong">worst</tspan> 425 µs</text>
+</svg>

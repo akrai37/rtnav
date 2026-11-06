@@ -1,0 +1,29 @@
+fault="none" track=oval passed=10/10
+fault="none" track=lobes passed=10/10
+fault="--left-gain 0.7" track=oval passed=10/10
+fault="--left-gain 0.7" track=lobes passed=10/10
+fault="--right-gain 0.6" track=oval passed=10/10
+fault="--right-gain 0.6" track=lobes passed=10/10
+fault="--noise 30" track=oval passed=10/10
+fault="--noise 30" track=lobes passed=10/10
+fault="--dead-sensor 0:80" track=oval passed=10/10
+fault="--dead-sensor 0:80" track=lobes passed=10/10
+fault="--dead-sensor 2:80" track=oval passed=10/10
+fault="--dead-sensor 2:80" track=lobes passed=10/10
+fault="--dead-sensor 4:80" track=oval passed=10/10
+fault="--dead-sensor 4:80" track=lobes passed=10/10
+fault="--dead-sensor 0:1023" track=oval passed=10/10
+fault="--dead-sensor 0:1023" track=lobes passed=0/10
+fault="--dead-sensor 1:1023" track=oval passed=10/10
+fault="--dead-sensor 1:1023" track=lobes passed=10/10
+fault="--dead-sensor 2:900" track=oval passed=10/10
+fault="--dead-sensor 2:900" track=lobes passed=10/10
+fault="--dead-sensor 3:1023" track=oval passed=3/10
+fault="--dead-sensor 3:1023" track=lobes passed=3/10
+fault="--dead-sensor 4:900" track=oval passed=10/10
+fault="--dead-sensor 4:900" track=lobes passed=10/10
+fault=none track=oval passed=20/20
+fault=none track=lobes passed=20/20
+fault=none track=gaps passed=20/20
+fault=none track=obstacle passed=20/20
+track=obstacle length_mm=3885 min_radius_mm=300 laps=1 seed=1 speed=150 completed=no collided=yes time_s=8.19 max_xte_mm=5.4 rms_xte_mm=3.3 min_clearance_mm=-0.9 searches=0 avoids=0 final_state=follow

@@ -71,6 +71,7 @@ typedef struct {
   unsigned mismatches;
   unsigned adc_errors;
   bool hung;
+  uint8_t flip[NAV_LINE_SENSORS + 1];  // --adc-stress: next value per channel
 } fil;
 
 static void die(const char* msg) {
@@ -181,15 +182,7 @@ static nav_motors read_motors(const fil* f) {
   };
 }
 
-static nav_motors fil_controller(void* ctx, const nav_inputs* in, nav_state* state) {
-  fil* f = ctx;
-  for (unsigned i = 0; i < NAV_LINE_SENSORS; ++i) {
-    avr_raise_irq(avr_io_getirq(f->avr, AVR_IOCTL_ADC_GETIRQ, (int)(ADC_IRQ_ADC0 + i)),
-                  millivolts(in->line[i]));
-  }
-  avr_raise_irq(avr_io_getirq(f->avr, AVR_IOCTL_ADC_GETIRQ, ADC_IRQ_ADC5),
-                millivolts(in->distance));
-
+static void run_one_step(fil* f) {
   f->step_done = false;
   const avr_cycle_count_t start = f->avr->cycle;
   while (!f->step_done) {
@@ -199,9 +192,24 @@ static nav_motors fil_controller(void* ctx, const nav_inputs* in, nav_state* sta
     }
     if (f->avr->cycle - start > HANG_CYCLES) {
       f->hung = true;
-      *state = NAV_STOP;
-      return (nav_motors){0, 0};
+      return;
     }
+  }
+}
+
+static nav_motors fil_controller(void* ctx, const nav_inputs* in, nav_state* state) {
+  fil* f = ctx;
+  for (unsigned i = 0; i < NAV_LINE_SENSORS; ++i) {
+    avr_raise_irq(avr_io_getirq(f->avr, AVR_IOCTL_ADC_GETIRQ, (int)(ADC_IRQ_ADC0 + i)),
+                  millivolts(in->line[i]));
+  }
+  avr_raise_irq(avr_io_getirq(f->avr, AVR_IOCTL_ADC_GETIRQ, ADC_IRQ_ADC5),
+                millivolts(in->distance));
+
+  run_one_step(f);
+  if (f->hung) {
+    *state = NAV_STOP;
+    return (nav_motors){0, 0};
   }
 
   const nav_motors m = read_motors(f);
@@ -223,6 +231,54 @@ static nav_motors fil_controller(void* ctx, const nav_inputs* in, nav_state* sta
   return m;
 }
 
+// --adc-stress: every conversion the firmware starts reads 255 or 256
+// counts, alternating per channel. The two differ in both bytes (0x0FF,
+// 0x100), so a sample copied half before and half after an update reads as
+// 0 or 511.
+static void on_conversion(struct avr_irq_t* irq, uint32_t value, void* param) {
+  (void)irq;
+  fil* f = param;
+  union {
+    avr_adc_mux_t mux;
+    uint32_t v;
+  } e;
+  e.v = value;
+  const unsigned ch = (unsigned)e.mux.src;
+  if (ch > NAV_LINE_SENSORS) {
+    return;
+  }
+  f->flip[ch] ^= 1u;
+  avr_raise_irq(avr_io_getirq(f->avr, AVR_IOCTL_ADC_GETIRQ, (int)(ADC_IRQ_ADC0 + ch)),
+                millivolts(f->flip[ch] ? 256 : 255));
+}
+
+static int stress(fil* f, unsigned ticks) {
+  avr_irq_register_notify(avr_io_getirq(f->avr, AVR_IOCTL_ADC_GETIRQ, ADC_IRQ_OUT_TRIGGER),
+                          on_conversion, f);
+  unsigned torn_values = 0;
+  unsigned torn_ticks = 0;
+  unsigned done = 0;
+  for (; done < ticks && !f->hung; ++done) {
+    run_one_step(f);
+    bool torn = false;
+    for (unsigned i = 0; i <= NAV_LINE_SENSORS; ++i) {
+      const uint16_t v = rd16(f, (uint16_t)(f->dbg + DBG_IN + 2u * i));
+      if (v != 255 && v != 256) {
+        if (++torn_values <= 5) {
+          fprintf(stderr, "torn read: tick %u channel %u = %u (0x%03x)\n", done, i, v, v);
+        }
+        torn = true;
+      }
+    }
+    if (torn) {
+      ++torn_ticks;
+    }
+  }
+  printf("mode=adc-stress ticks=%u torn_values=%u torn_ticks=%u hung=%s\n", done, torn_values,
+         torn_ticks, f->hung ? "yes" : "no");
+  return torn_values || f->hung ? 1 : 0;
+}
+
 static int cmp_u32(const void* a, const void* b) {
   const uint32_t x = *(const uint32_t*)a;
   const uint32_t y = *(const uint32_t*)b;
@@ -232,13 +288,16 @@ static int cmp_u32(const void* a, const void* b) {
 static void usage(void) {
   fprintf(stderr,
           "usage: rtnav-fil --elf FILE [--track NAME] [--laps N] [--seed N]\n"
-          "                 [--dead-sensor I:V] [--durations FILE]\n");
+          "                 [--dead-sensor I:V] [--durations FILE] [--trace FILE]\n"
+          "       rtnav-fil --elf FILE --adc-stress TICKS\n");
 }
 
 int main(int argc, char** argv) {
   const char* elf_path = NULL;
   const char* track_name = "oval";
   const char* durations_path = NULL;
+  const char* trace_path = NULL;
+  unsigned stress_ticks = 0;
   sim_params p = sim_default_params();
   sim_run_options opt = {.laps = 1};
   for (int i = 1; i + 1 < argc; i += 2) {
@@ -254,6 +313,10 @@ int main(int argc, char** argv) {
       p.seed = strtoull(v, NULL, 10);
     } else if (strcmp(a, "--durations") == 0) {
       durations_path = v;
+    } else if (strcmp(a, "--trace") == 0) {
+      trace_path = v;
+    } else if (strcmp(a, "--adc-stress") == 0) {
+      stress_ticks = (unsigned)strtoul(v, NULL, 10);
     } else if (strcmp(a, "--dead-sensor") == 0) {
       unsigned idx;
       unsigned val;
@@ -306,12 +369,24 @@ int main(int argc, char** argv) {
 
   const nav_config cfg = nav_default_config();
   nav_init(&f.host, &cfg);
+  if (stress_ticks) {
+    return stress(&f, stress_ticks);
+  }
+  if (trace_path) {
+    opt.trace = fopen(trace_path, "w");
+    if (!opt.trace) {
+      die("cannot write the trace file");
+    }
+  }
 
   sim_track t;
   if (!sim_track_build(&t, track_name)) {
     die("unknown track");
   }
   const sim_result r = sim_run(&t, &p, &opt, fil_controller, &f);
+  if (opt.trace) {
+    fclose(opt.trace);
+  }
 
   // Deepest stack use: the stack grows down from RAMEND into painted RAM.
   uint32_t low = ram_free;
@@ -321,7 +396,9 @@ int main(int argc, char** argv) {
   const unsigned stack_bytes = (unsigned)(RAMEND + 1u - low);
 
   if (f.n == 0) {
-    die("no control steps observed");
+    printf("track=%s completed=no steps=0 hung=%s\n", t.name, f.hung ? "yes" : "no");
+    sim_track_free(&t);
+    return 1;
   }
   uint32_t* sorted = malloc(f.n * sizeof *sorted);
   if (!sorted) {

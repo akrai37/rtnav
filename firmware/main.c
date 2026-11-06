@@ -31,7 +31,11 @@ typedef struct {
 
 volatile rtnav_debug_t rtnav_debug;
 
+#if defined(RTNAV_VARIANT_NO_VOLATILE) || defined(RTNAV_VARIANT_POLL_NO_VOLATILE)
+static uint8_t tick_due;  // negative control: shared with the ISR but not volatile
+#else
 static volatile uint8_t tick_due;
+#endif
 
 ISR(TIMER1_COMPA_vect) {
   if (tick_due) {
@@ -51,6 +55,13 @@ static void timer1_start(void) {
 // the sleep (sei takes effect after the next instruction), so a tick cannot
 // slip in between and leave the loop asleep for a whole period.
 static void wait_for_tick(void) {
+#if defined(RTNAV_VARIANT_POLL) || defined(RTNAV_VARIANT_POLL_NO_VOLATILE)
+  // Variant: busy-wait instead of sleeping.
+  while (!tick_due) {
+  }
+  tick_due = 0;
+  return;
+#endif
   for (;;) {
     cli();
     if (tick_due) {

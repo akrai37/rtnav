@@ -1,0 +1,1 @@
+track=lobes laps=2 seed=1 completed=yes collided=no sim_time_s=30.18 avoids=0 searches=0 final_state=follow steps=3018 fw_steps=3018 step_p50_cycles=4879 step_p99_cycles=6140 step_worst_cycles=6807 step_worst_us=425.4 budget_pct=4.25 period_jitter_cycles=51 fw_worst_end_us=416 missed_ticks=0 stack_bytes=237 ram_static_bytes=47 lockstep_mismatches=0 adc_readback_errors=0 hung=no

@@ -2,8 +2,12 @@
 #
 #   make            build/rtnav.elf and build/rtnav.hex, then print the footprint
 #   make clean
+#   make VARIANT=torn-read   a deliberately broken build into build-torn-read/
 #
 # No Arduino core: registers and avr-libc only.
+#
+# Variants are negative controls for the firmware-in-the-loop checks (see
+# README): torn-read, no-volatile, poll, poll-no-volatile, blocking-adc.
 
 MCU   ?= atmega328p
 F_CPU ?= 16000000UL
@@ -12,6 +16,11 @@ OBJCOPY := avr-objcopy
 SIZE  := avr-size
 
 BUILD := build
+VARIANT_FLAGS :=
+ifneq ($(VARIANT),)
+BUILD := build-$(VARIANT)
+VARIANT_FLAGS := -DRTNAV_VARIANT_$(shell echo $(VARIANT) | tr a-z- A-Z_)
+endif
 # nav.c is the portable navigation logic shared with the host build.
 SRC   := main.c adc.c motors.c nav.c
 OBJ   := $(SRC:%.c=$(BUILD)/%.o)
@@ -19,7 +28,7 @@ vpath %.c ../src
 
 CFLAGS := -mmcu=$(MCU) -DF_CPU=$(F_CPU) -Os -std=gnu11 -g \
           -Wall -Wextra -Werror -Wshadow -Wstrict-prototypes -Wmissing-prototypes \
-          -ffunction-sections -fdata-sections -MMD -MP -I../include
+          -ffunction-sections -fdata-sections -MMD -MP -I../include $(VARIANT_FLAGS)
 LDFLAGS := -mmcu=$(MCU) -Wl,--gc-sections
 
 .PHONY: all clean size

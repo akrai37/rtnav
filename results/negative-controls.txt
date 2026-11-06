@@ -1,0 +1,13 @@
+variant=no-volatile track=oval laps=1 seed=1 completed=yes collided=no sim_time_s=13.80 avoids=0 searches=0 final_state=follow steps=1380 fw_steps=1380 step_p50_cycles=4699 step_p99_cycles=5590 step_worst_cycles=6198 step_worst_us=387.4 budget_pct=3.87 period_jitter_cycles=50 fw_worst_end_us=380 missed_ticks=0 stack_bytes=237 ram_static_bytes=47 lockstep_mismatches=0 adc_readback_errors=0 hung=no
+variant=poll track=oval laps=1 seed=1 completed=yes collided=no sim_time_s=13.80 avoids=0 searches=0 final_state=follow steps=1380 fw_steps=1380 step_p50_cycles=4700 step_p99_cycles=5594 step_worst_cycles=6196 step_worst_us=387.2 budget_pct=3.87 period_jitter_cycles=78 fw_worst_end_us=380 missed_ticks=0 stack_bytes=237 ram_static_bytes=47 lockstep_mismatches=0 adc_readback_errors=0 hung=no
+variant=poll-no-volatile track=oval completed=no steps=0 hung=yes
+variant=blocking-adc track=oval laps=1 seed=1 completed=yes collided=no sim_time_s=13.80 avoids=0 searches=0 final_state=follow steps=1380 fw_steps=1380 step_p50_cycles=328186 step_p99_cycles=329071 step_worst_cycles=329714 step_worst_us=20607.1 budget_pct=206.07 period_jitter_cycles=169727 fw_worst_end_us=9992 missed_ticks=1450 stack_bytes=234 ram_static_bytes=34 lockstep_mismatches=0 adc_readback_errors=0 hung=no
+-- poll-no-volatile wait loop (tick_due loaded once, then a jump to itself):
+  while (!tick_due) {
+ 15a:	80 91 0a 01 	lds	r24, 0x010A	; 0x80010a <__data_end>
+ 15e:	81 11       	cpse	r24, r1
+ 160:	01 c0       	rjmp	.+2      	; 0x164 <main+0x82>
+ 162:	ff cf       	rjmp	.-2      	; 0x162 <main+0x80>
+  }
+  tick_due = 0;
+ 164:	10 92 0a 01 	sts	0x010A, r1	; 0x80010a <__data_end>
