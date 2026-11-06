@@ -50,6 +50,21 @@ endif()
 add_executable(rtnav-sim tools/rtnav_sim.c)
 target_link_libraries(rtnav-sim PRIVATE rtnav_sim rtnav_warnings)
 
+# Firmware in the loop: the compiled firmware on simavr, driving the
+# simulated robot. Needs simavr and libelf (Linux: libsimavr-dev, libelf-dev)
+# and the firmware built first (make -C firmware).
+option(RTNAV_FIL "Build the firmware-in-the-loop harness" OFF)
+if(RTNAV_FIL)
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(SIMAVR REQUIRED IMPORTED_TARGET simavr)
+  pkg_check_modules(LIBELF REQUIRED IMPORTED_TARGET libelf)
+  add_executable(rtnav-fil fil/fil.c)
+  target_link_libraries(rtnav-fil PRIVATE rtnav_sim PkgConfig::SIMAVR PkgConfig::LIBELF
+                        rtnav_warnings)
+  set(RTNAV_FIRMWARE_ELF "${CMAKE_CURRENT_SOURCE_DIR}/firmware/build/rtnav.elf"
+      CACHE FILEPATH "Firmware ELF for the firmware-in-the-loop tests")
+endif()
+
 if(RTNAV_BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests)

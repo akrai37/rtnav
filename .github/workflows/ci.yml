@@ -34,8 +34,26 @@ jobs:
 
       - name: Build and test
         run: |
-          if [ -f CMakeLists.txt ]; then
-            cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DRTNAV_WERROR=ON -DRTNAV_SANITIZE=ON
-            cmake --build build -j
-            ctest --test-dir build --output-on-failure -j 4
-          fi
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DRTNAV_WERROR=ON -DRTNAV_SANITIZE=ON
+          cmake --build build -j
+          ctest --test-dir build --output-on-failure -j 4
+
+  fil:
+    name: firmware in the loop / simavr
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the AVR toolchain and simavr
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-avr avr-libc binutils-avr libsimavr-dev libelf-dev pkg-config
+
+      - name: Build the firmware
+        run: make -C firmware
+
+      - name: Run the firmware on every track
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DRTNAV_WERROR=ON -DRTNAV_FIL=ON
+          cmake --build build -j
+          ctest --test-dir build --output-on-failure -j 4 -R '^fil_'
