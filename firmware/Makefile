@@ -13,13 +13,13 @@ SIZE  := avr-size
 
 BUILD := build
 # nav.c is the portable navigation logic shared with the host build.
-SRC   := main.c nav.c
+SRC   := main.c adc.c motors.c nav.c
 OBJ   := $(SRC:%.c=$(BUILD)/%.o)
 vpath %.c ../src
 
 CFLAGS := -mmcu=$(MCU) -DF_CPU=$(F_CPU) -Os -std=gnu11 -g \
           -Wall -Wextra -Werror -Wshadow -Wstrict-prototypes -Wmissing-prototypes \
-          -ffunction-sections -fdata-sections -I../include
+          -ffunction-sections -fdata-sections -MMD -MP -I../include
 LDFLAGS := -mmcu=$(MCU) -Wl,--gc-sections
 
 .PHONY: all clean size
@@ -42,3 +42,5 @@ size: $(BUILD)/rtnav.elf
 
 clean:
 	rm -rf $(BUILD)
+
+-include $(OBJ:.o=.d)
